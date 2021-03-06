@@ -190,21 +190,24 @@ def value_iteration(trn_fn, rwd_fn, gamma):
               matrix multiplications as is interferes with the evaluation script.
               Instead you can use "matmul()" function defined above
     '''
-    pre = np.zeros((rwd_fn.shape[0], 1))
-    nxt = np.zeros((rwd_fn.shape[0], 1))
+    curr_utility = np.zeros((rwd_fn.shape[0], 1))
+    prev_utility = np.zeros((rwd_fn.shape[0], 1))
+
     while True:
-        pre = nxt
-        for s in range(rwd_fn.shape[0]):
-            pdt = matmul(trn_fn[:,s,:], rwd_fn[s,:].T.reshape((rwd_fn.shape[0], 1)) + gamma * pre)
-            nxt[s] = np.max(pdt)
-
-        if (nxt - pre).all() < delta:
-            val_fn = pre.reshape((rwd_fn.shape[0], ))
+        prev_utility = curr_utility
+        for state in range(rwd_fn.shape[0]):
+            utility_actions = matmul(trn_fn[:, state, :], rwd_fn[state, :].reshape(rwd_fn.shape[0], 1) + gamma * prev_utility)
+            # for this state, this is the best action
+            curr_utility[state] = np.max(utility_actions)
+        
+        if ((curr_utility - prev_utility).all() < delta):
+            value_fn = prev_utility.reshape(rwd_fn.shape[0],)
             break
-
-    for s in range(rwd_fn.shape[0]):
-        pdt = matmul(trn_fn[:,s,:], rwd_fn[s,:].T.reshape((rwd_fn.shape[0], 1)) + gamma * val_fn.reshape((rwd_fn.shape[0], 1)))
-        policy[s] = np.argmax(pdt)
+    
+    # policy extraction
+    for state in range(rwd_fn.shape[0]):
+        utility_actions = matmul(trn_fn[:, state, :], rwd_fn[state, :].reshape(rwd_fn.shape[0], 1) + gamma * value_fn.reshape(rwd_fn.shape[0], 1))
+        policy[state] = np.argmax(utility_actions)
 
     return value_fn, policy.astype("int")
 
